@@ -3,16 +3,11 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - uses: goto-bus-stop/setup-zig@v1
-    - run: zig fmt --check src/*.zig
-  
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - uses: goto-bus-stop/setup-zig@v1
+      with:
+        version: 0.9.1
     - run: zig build -Drelease-small

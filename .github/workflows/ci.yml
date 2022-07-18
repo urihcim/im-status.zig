@@ -36,7 +36,7 @@ jobs:
       with:
         path: im-status-${{ steps.version.outputs.version }}
     - name: Archive
-      run: 7z a ${{ steps.download.outputs.download-path }}.zip ${{ steps.download.outputs.download-path }}
+      run: 7z a ${{ steps.download.outputs.download-path }}.zip ${{ steps.download.outputs.download-path }}/artifact/*
     - name: Release
       uses: softprops/action-gh-release@v1
       with:

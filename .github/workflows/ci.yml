@@ -1,13 +1,43 @@
 name: CI
-
 on: [push, pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: goto-bus-stop/setup-zig@v1
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Setup Zig
+      uses: goto-bus-stop/setup-zig@v1
       with:
         version: 0.9.1
-    - run: zig build -Drelease-small
+    - name: Build
+      run: zig build -Drelease-small
+    - name: Upload binary
+      uses: actions/upload-artifact@v3
+      with:
+        path: ${{ github.workspace }}/zig-out/bin/*.exe
+    - name: Upload documents
+      uses: actions/upload-artifact@v3
+      with:
+        path: ./*.md
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get version
+      id: version
+      run:  echo ::set-output name=version::${GITHUB_REF#refs/tags/}
+    - name: Download
+      id: download
+      uses: actions/download-artifact@v3
+      with:
+        path: im-status-${{ steps.version.outputs.version }}
+    - name: Archive
+      run: 7z a ${{ steps.download.outputs.download-path }}.zip ${{ steps.download.outputs.download-path }}
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      with:
+          files: ${{ steps.download.outputs.download-path }}.zip

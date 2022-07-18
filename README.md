@@ -1,10 +1,22 @@
 # im-status
-Obtain or switch IM open status.
-This project is a basic support for [VSCodeVim](https://github.com/VSCodeVim/Vim).
-It provides the command line program for VSCodeVim's autoSwitchIM function
+
+Obtains or switches Input Method open status in Windows.
+It provides the command line program for [VSCodeVim](https://github.com/VSCodeVim/Vim)'s autoSwitchIM function.
+
+## Installation
+
+Binaries are available from the [Releases page](https://github.com/urihcim/im-status.zig/releases).
+
+### From Source
+
+```bash
+git clone https://github.com/urihcim/im-status.zig.git
+cd im-status.zig
+zig build -Drelease-small
+```
 
 ## Usage
 
-```shell
+```
 im-status [0|1]
 ```

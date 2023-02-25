@@ -6,12 +6,12 @@ pub fn build(b: *std.build.Builder) void {
     // means any target is allowed, and the default is native. Other options
     // for restricting supported target set are available.
     //const target = b.standardTargetOptions(.{});
-    const target = b.standardTargetOptions(.{
-        .default_target = std.zig.CrossTarget.fromTarget(.{
+    const target = b.standardTargetOptions(.{ .default_target = std.zig.CrossTarget.fromTarget(.{
         .cpu = std.Target.Cpu.baseline(.x86_64),
         .os = std.Target.Os.Tag.defaultVersionRange(.windows, .x86_64),
         .abi = .msvc,
-    })});
+        .ofmt = .coff,
+    }) });
 
     // Standard release options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.

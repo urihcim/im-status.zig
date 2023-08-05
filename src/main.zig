@@ -29,7 +29,7 @@ pub fn main() !void {
             const args = CommandLineToArgvW(cmdline, &argc);
 
             if (argc > 1) {
-                const status = args[1][0] + (@intCast(u32, args[1][1]) << 16);
+                const status = args[1][0];
                 switch (status) {
                     '0' => imSetStatus(hIMEWnd, 0),
                     '1' => imSetStatus(hIMEWnd, 1),

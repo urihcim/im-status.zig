@@ -14,11 +14,11 @@ jobs:
     - name: Build
       run: zig build -Drelease=true
     - name: Upload binary
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         path: ${{ github.workspace }}/zig-out/bin/*.exe
     - name: Upload documents
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         path: ./*.md
 

@@ -1,6 +1,7 @@
 const std = @import("std");
 const win = std.os.windows;
 
+const WM_IME_CONTROL: win.UINT = 0x0283;
 const IMC_GETOPENSTATUS: win.WPARAM = 0x0005;
 const IMC_SETOPENSTATUS: win.WPARAM = 0x0006;
 
@@ -23,7 +24,7 @@ extern "imm32" fn ImmGetDefaultIMEWnd(hWnd: ?win.HWND) callconv(win.WINAPI) ?win
 extern "shell32" fn CommandLineToArgvW(lpCmdLine: win.LPCWSTR, pNumArgs: *c_int) callconv(win.WINAPI) [*]win.LPWSTR;
 
 fn imControl(hWnd: ?win.HWND, wParam: win.WPARAM, lParam: win.LPARAM) win.LRESULT {
-    return SendMessageA(hWnd, win.user32.WM_IME_CONTROL, wParam, lParam);
+    return SendMessageA(hWnd, WM_IME_CONTROL, wParam, lParam);
 }
 
 fn imGetStatus(hWnd: ?win.HWND) isize {
@@ -51,7 +52,7 @@ pub fn main() !void {
                 '0' => imSetStatus(hIMEWnd, 0),
                 '1' => imSetStatus(hIMEWnd, 1),
                 else => {
-                    std.os.exit(1);
+                    std.posix.exit(1);
                 },
             }
         } else {

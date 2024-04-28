@@ -12,7 +12,7 @@ jobs:
       with:
         version: 0.12.0
     - name: Build
-      run: zig build -Drelease=true
+      run: zig build --release=small
     - name: Upload binary
       uses: actions/upload-artifact@v4
       with:

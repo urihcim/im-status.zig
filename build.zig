@@ -8,7 +8,6 @@ pub fn build(b: *std.Build) void {
     // what target to build for. Here we do not override the defaults, which
     // means any target is allowed, and the default is native. Other options
     // for restricting supported target set are available.
-    //const target = b.standardTargetOptions(.{});
     const target = b.standardTargetOptions(.{ .default_target = std.zig.CrossTarget.fromTarget(.{
         .cpu = std.Target.Cpu.baseline(.x86_64),
         .os = std.Target.Os.Tag.defaultVersionRange(.windows, .x86_64),

@@ -12,7 +12,7 @@ Binaries are available from the [Releases page](https://github.com/urihcim/im-st
 ```bash
 git clone https://github.com/urihcim/im-status.zig.git
 cd im-status.zig
-zig build -Drelease-small
+zig build
 ```
 
 ## Usage

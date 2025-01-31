@@ -36,8 +36,8 @@ jobs:
     - name: Archive
       run: >
         7z a ${{ steps.download.outputs.download-path }}.zip
-          ${{ steps.download.outputs.download-path }}/artifact/zig-out/bin/*.exe
-          ${{ steps.download.outputs.download-path }}/artifact/*.md
+        ${{ steps.download.outputs.download-path }}/artifact/zig-out/bin/*.exe
+        ${{ steps.download.outputs.download-path }}/artifact/*.md
     - name: Release
       uses: softprops/action-gh-release@v2
       with:

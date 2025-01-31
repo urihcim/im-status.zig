@@ -17,7 +17,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         path: |
-          ${{ github.workspace }}/zig-out/bin/*.exe
+          ./zig-out/bin/*.exe
           ./*.md
 
   release:
@@ -27,15 +27,20 @@ jobs:
     steps:
     - name: Get version
       id: version
-      run:  echo ::set-output name=version::${GITHUB_REF#refs/tags/}
+      run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
     - name: Download
       id: download
       uses: actions/download-artifact@v4
       with:
         path: im-status-${{ steps.version.outputs.version }}
     - name: Archive
-      run: 7z a ${{ steps.download.outputs.download-path }}.zip ${{ steps.download.outputs.download-path }}/artifact/*
+      run: >
+        7z a ${{ steps.download.outputs.download-path }}.zip
+          ${{ steps.download.outputs.download-path }}/artifact/zig-out/bin/*.exe
+          ${{ steps.download.outputs.download-path }}/artifact/*.md
     - name: Release
       uses: softprops/action-gh-release@v2
       with:
-          files: ${{ steps.download.outputs.download-path }}.zip
+        files: |
+          ${{ steps.download.outputs.download-path }}.zip
+          ${{ steps.download.outputs.download-path }}/artifact/zig-out/bin/*.exe

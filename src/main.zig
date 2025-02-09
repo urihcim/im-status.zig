@@ -5,6 +5,9 @@ const WM_IME_CONTROL = 0x0283;
 const IMC_GETOPENSTATUS = 0x0005;
 const IMC_SETOPENSTATUS = 0x0006;
 
+const PROCESS_VM_READ = 0x0010;
+const PROCESS_QUERY_INFORMATION = 0x0400;
+
 const VK_IME_ON = 0x16;
 const VK_IME_OFF = 0x1A;
 const VK_ESCAPE = 0x1B;
@@ -80,27 +83,67 @@ const INPUT = extern struct {
 };
 
 extern "kernel32" fn GetLastError() callconv(win.WINAPI) win.DWORD;
+extern "kernel32" fn OpenProcess(dwDesiredAccess: win.DWORD, bInheritHandle: win.BOOL, dwProcessId: win.DWORD) callconv(win.WINAPI) ?win.HANDLE;
+extern "psapi" fn GetModuleFileNameExA(hProcess: win.HANDLE, hModule: ?win.HMODULE, lpFilename: win.LPSTR, nSize: win.DWORD) callconv(win.WINAPI) win.DWORD;
+extern "user32" fn GetWindowThreadProcessId(hWnd: win.HWND, lpdwProcessId: ?*win.DWORD) callconv(win.WINAPI) win.DWORD;
 extern "user32" fn GetGUIThreadInfo(idThread: win.DWORD, pgui: *GUITHREADINFO) callconv(win.WINAPI) win.BOOL;
-extern "user32" fn SendMessageA(hWnd: ?win.HANDLE, msg: win.UINT, wParam: win.WPARAM, lParam: win.LPARAM) callconv(win.WINAPI) win.LRESULT;
+extern "user32" fn SendMessageA(hWnd: win.HANDLE, msg: win.UINT, wParam: win.WPARAM, lParam: win.LPARAM) callconv(win.WINAPI) win.LRESULT;
 extern "user32" fn SendInput(cInputs: win.UINT, pInputs: [*]const INPUT, cbSize: c_int) callconv(win.WINAPI) win.UINT;
-extern "imm32" fn ImmGetDefaultIMEWnd(hWnd: ?win.HWND) callconv(win.WINAPI) ?win.HWND;
+extern "imm32" fn ImmGetDefaultIMEWnd(hWnd: win.HWND) callconv(win.WINAPI) ?win.HWND;
 extern "shell32" fn CommandLineToArgvW(lpCmdLine: win.LPCWSTR, pNumArgs: *c_int) callconv(win.WINAPI) [*]win.LPWSTR;
 
-fn imGetWindow() !win.HWND {
+fn imGetFocus() !win.HWND {
     var gui = GUITHREADINFO{};
     if (GetGUIThreadInfo(0, &gui) == win.FALSE) {
         std.log.err("GetGUIThreadInfo failed: err={}", .{GetLastError()});
         return error.Failed;
     }
-    if (ImmGetDefaultIMEWnd(gui.hwndFocus)) |hWndIME| {
-        return hWndIME;
+    if (gui.hwndFocus) |hWnd| {
+        return hWnd;
     } else {
-        std.log.err("ImmGetDefaultIMEWnd failed: err={}", .{GetLastError()});
+        std.log.err("hwndFocus is null", .{});
         return error.Failed;
     }
 }
 
-fn imControl(hWnd: ?win.HWND, wParam: win.WPARAM, lParam: win.LPARAM) !win.LRESULT {
+fn imGetExeName() ![]const u8 {
+    const hWnd = try imGetFocus();
+
+    var pid: win.DWORD = undefined;
+    if (GetWindowThreadProcessId(hWnd, &pid) == 0) {
+        std.log.err("GetWindowThreadProcessId failed: err={}", .{GetLastError()});
+        return error.Failed;
+    }
+
+    var hProcess: win.HANDLE = undefined;
+    if (OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, win.FALSE, pid)) |handle| {
+        hProcess = handle;
+    } else {
+        std.log.err("OpenProcess failed: err={}", .{GetLastError()});
+        return error.Failed;
+    }
+    defer _ = win.CloseHandle(hProcess);
+
+    var buf: [255:0]u8 = undefined;
+    const r = GetModuleFileNameExA(hProcess, null, &buf, buf.len);
+    if (r == 0) {
+        std.log.err("GetModuleFileNameEx failed: err={}", .{GetLastError()});
+        return error.Failed;
+    }
+    return buf[0..@intCast(r)];
+}
+
+fn imGetWindow() !win.HWND {
+    const hWnd = try imGetFocus();
+    if (ImmGetDefaultIMEWnd(hWnd)) |hWndIME| {
+        return hWndIME;
+    } else {
+        std.log.err("ImmGetDefaultIMEWnd failed", .{});
+        return error.Failed;
+    }
+}
+
+fn imControl(hWnd: win.HWND, wParam: win.WPARAM, lParam: win.LPARAM) !win.LRESULT {
     const r = SendMessageA(hWnd, WM_IME_CONTROL, wParam, lParam);
     const err = GetLastError();
     if (err != 0) {
@@ -128,31 +171,26 @@ fn imSendInput(inputs: []const INPUT) !void {
     }
 }
 
-fn imKeyModUp() []const INPUT {
-    return &[_]INPUT{
-        //INPUT.VK(VK_LWIN, KEYEVENTF_KEYUP),
-        //INPUT.VK(VK_RWIN, KEYEVENTF_KEYUP),
+fn imReleaseModKey() !void {
+    const inputs = &[_]INPUT{
         INPUT.VK(VK_LSHIFT, KEYEVENTF_KEYUP),
         INPUT.VK(VK_RSHIFT, KEYEVENTF_KEYUP),
         INPUT.VK(VK_LCONTROL, KEYEVENTF_KEYUP),
         INPUT.VK(VK_RCONTROL, KEYEVENTF_KEYUP),
         //INPUT.VK(VK_LMENU, KEYEVENTF_KEYUP),
         //INPUT.VK(VK_RMENU, KEYEVENTF_KEYUP),
-    };
-}
-
-fn imOff() !void {
-    const inputs = comptime imKeyModUp() ++ [_]INPUT{
-        INPUT.VK(VK_IME_OFF, 0),
-        INPUT.VK(VK_IME_OFF, KEYEVENTF_KEYUP),
+        //INPUT.VK(VK_LWIN, KEYEVENTF_KEYUP),
+        //INPUT.VK(VK_RWIN, KEYEVENTF_KEYUP),
     };
     try imSendInput(inputs);
 }
 
-fn imOn() !void {
-    const inputs = comptime imKeyModUp() ++ [_]INPUT{
-        INPUT.VK(VK_IME_ON, 0),
-        INPUT.VK(VK_IME_ON, KEYEVENTF_KEYUP),
+fn imFixUp() !void {
+    const name = try imGetExeName();
+    if (!std.mem.endsWith(u8, name, "\\Code.exe")) {
+        return;
+    }
+    const inputs = &[_]INPUT{
         INPUT.VK(VK_LSHIFT, 0),
         INPUT.VK(VK_F10, 0),
         INPUT.VK(VK_F10, KEYEVENTF_KEYUP),
@@ -161,6 +199,25 @@ fn imOn() !void {
         INPUT.VK(VK_ESCAPE, KEYEVENTF_KEYUP),
     };
     try imSendInput(inputs);
+}
+
+fn imOff() !void {
+    try imReleaseModKey();
+    const inputs = &[_]INPUT{
+        INPUT.VK(VK_IME_OFF, 0),
+        INPUT.VK(VK_IME_OFF, KEYEVENTF_KEYUP),
+    };
+    try imSendInput(inputs);
+}
+
+fn imOn() !void {
+    try imReleaseModKey();
+    const inputs = &[_]INPUT{
+        INPUT.VK(VK_IME_ON, 0),
+        INPUT.VK(VK_IME_ON, KEYEVENTF_KEYUP),
+    };
+    try imSendInput(inputs);
+    try imFixUp();
 }
 
 pub fn main() void {

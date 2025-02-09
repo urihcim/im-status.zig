@@ -28,32 +28,32 @@ const INPUT_KEYBOARD = 1;
 const INPUT_HARDWARE = 2;
 
 const GUITHREADINFO = extern struct {
-    cbSize: win.DWORD,
-    flags: win.DWORD,
-    hwndActive: ?win.HWND,
-    hwndFocus: ?win.HWND,
-    hwndCapture: ?win.HWND,
-    hwndMenuOwner: ?win.HWND,
-    hwndMoveSize: ?win.HWND,
-    hwndCaret: ?win.HWND,
-    rcCaret: win.RECT,
+    cbSize: win.DWORD = @sizeOf(GUITHREADINFO),
+    flags: win.DWORD = 0,
+    hwndActive: ?win.HWND = null,
+    hwndFocus: ?win.HWND = null,
+    hwndCapture: ?win.HWND = null,
+    hwndMenuOwner: ?win.HWND = null,
+    hwndMoveSize: ?win.HWND = null,
+    hwndCaret: ?win.HWND = null,
+    rcCaret: win.RECT = .{ .left = 0, .top = 0, .right = 0, .bottom = 0 },
 };
 
 const MOUSEINPUT: type = extern struct {
     dx: win.LONG,
     dy: win.LONG,
-    mouseData: win.DWORD,
-    dwFlags: win.DWORD,
-    time: win.DWORD,
-    dwExtraInfo: win.ULONG_PTR,
+    mouseData: win.DWORD = 0,
+    dwFlags: win.DWORD = 0,
+    time: win.DWORD = 0,
+    dwExtraInfo: win.ULONG_PTR = 0,
 };
 
 const KEYBDINPUT = extern struct {
     wVk: win.WORD,
     wScan: win.WORD,
-    dwFlags: win.DWORD,
-    time: win.DWORD,
-    dwExtraInfo: win.ULONG_PTR,
+    dwFlags: win.DWORD = 0,
+    time: win.DWORD = 0,
+    dwExtraInfo: win.ULONG_PTR = 0,
 };
 
 const HARDWAREINPUT: type = extern struct {
@@ -69,6 +69,14 @@ const INPUT = extern struct {
         ki: KEYBDINPUT,
         hi: HARDWAREINPUT,
     },
+
+    fn VK(wVK: win.WORD, dwFlags: win.DWORD) INPUT {
+        return .{ .type = INPUT_KEYBOARD, .u = .{ .ki = .{
+            .wVk = wVK,
+            .wScan = 0,
+            .dwFlags = dwFlags,
+        } } };
+    }
 };
 
 extern "kernel32" fn GetLastError() callconv(win.WINAPI) win.DWORD;
@@ -79,16 +87,12 @@ extern "imm32" fn ImmGetDefaultIMEWnd(hWnd: ?win.HWND) callconv(win.WINAPI) ?win
 extern "shell32" fn CommandLineToArgvW(lpCmdLine: win.LPCWSTR, pNumArgs: *c_int) callconv(win.WINAPI) [*]win.LPWSTR;
 
 fn imGetWindow() !win.HWND {
-    var hWnd: ?win.HWND = undefined;
-    var gui = std.mem.zeroes(GUITHREADINFO);
-    gui.cbSize = @sizeOf(GUITHREADINFO);
-    if (GetGUIThreadInfo(0, &gui) == win.TRUE) {
-        hWnd = gui.hwndFocus;
-    } else {
+    var gui = GUITHREADINFO{};
+    if (GetGUIThreadInfo(0, &gui) == win.FALSE) {
         std.log.err("GetGUIThreadInfo failed: err={}", .{GetLastError()});
         return error.Failed;
     }
-    if (ImmGetDefaultIMEWnd(hWnd)) |hWndIME| {
+    if (ImmGetDefaultIMEWnd(gui.hwndFocus)) |hWndIME| {
         return hWndIME;
     } else {
         std.log.err("ImmGetDefaultIMEWnd failed: err={}", .{GetLastError()});
@@ -117,7 +121,6 @@ fn imSetStatus(status: isize) !void {
 }
 
 fn imSendInput(inputs: []const INPUT) !void {
-    //const r = SendInput(@intCast(inputs.len), @ptrCast(&inputs[0]), @sizeOf(INPUT));
     const r = SendInput(@intCast(inputs.len), inputs.ptr, @sizeOf(INPUT));
     if (r == 0) {
         std.log.err("SendInput failed: err={}", .{GetLastError()});
@@ -125,47 +128,37 @@ fn imSendInput(inputs: []const INPUT) !void {
     }
 }
 
-fn imKey(wVk: win.WORD, dwFlags: win.DWORD) INPUT {
-    return .{ .type = INPUT_KEYBOARD, .u = .{ .ki = .{
-        .wVk = wVk,
-        .wScan = 0,
-        .dwFlags = dwFlags,
-        .time = 0,
-        .dwExtraInfo = 0,
-    } } };
-}
-
 fn imKeyModUp() []const INPUT {
     return &[_]INPUT{
-        //imKey(VK_LWIN, KEYEVENTF_KEYUP),
-        //imKey(VK_RWIN, KEYEVENTF_KEYUP),
-        imKey(VK_LSHIFT, KEYEVENTF_KEYUP),
-        imKey(VK_RSHIFT, KEYEVENTF_KEYUP),
-        imKey(VK_LCONTROL, KEYEVENTF_KEYUP),
-        imKey(VK_RCONTROL, KEYEVENTF_KEYUP),
-        //imKey(VK_LMENU, KEYEVENTF_KEYUP),
-        //imKey(VK_RMENU, KEYEVENTF_KEYUP),
+        //INPUT.VK(VK_LWIN, KEYEVENTF_KEYUP),
+        //INPUT.VK(VK_RWIN, KEYEVENTF_KEYUP),
+        INPUT.VK(VK_LSHIFT, KEYEVENTF_KEYUP),
+        INPUT.VK(VK_RSHIFT, KEYEVENTF_KEYUP),
+        INPUT.VK(VK_LCONTROL, KEYEVENTF_KEYUP),
+        INPUT.VK(VK_RCONTROL, KEYEVENTF_KEYUP),
+        //INPUT.VK(VK_LMENU, KEYEVENTF_KEYUP),
+        //INPUT.VK(VK_RMENU, KEYEVENTF_KEYUP),
     };
 }
 
 fn imOff() !void {
     const inputs = comptime imKeyModUp() ++ [_]INPUT{
-        imKey(VK_IME_OFF, 0),
-        imKey(VK_IME_OFF, KEYEVENTF_KEYUP),
+        INPUT.VK(VK_IME_OFF, 0),
+        INPUT.VK(VK_IME_OFF, KEYEVENTF_KEYUP),
     };
     try imSendInput(inputs);
 }
 
 fn imOn() !void {
     const inputs = comptime imKeyModUp() ++ [_]INPUT{
-        imKey(VK_IME_ON, 0),
-        imKey(VK_IME_ON, KEYEVENTF_KEYUP),
-        imKey(VK_LSHIFT, 0),
-        imKey(VK_F10, 0),
-        imKey(VK_F10, KEYEVENTF_KEYUP),
-        imKey(VK_LSHIFT, KEYEVENTF_KEYUP),
-        imKey(VK_ESCAPE, 0),
-        imKey(VK_ESCAPE, KEYEVENTF_KEYUP),
+        INPUT.VK(VK_IME_ON, 0),
+        INPUT.VK(VK_IME_ON, KEYEVENTF_KEYUP),
+        INPUT.VK(VK_LSHIFT, 0),
+        INPUT.VK(VK_F10, 0),
+        INPUT.VK(VK_F10, KEYEVENTF_KEYUP),
+        INPUT.VK(VK_LSHIFT, KEYEVENTF_KEYUP),
+        INPUT.VK(VK_ESCAPE, 0),
+        INPUT.VK(VK_ESCAPE, KEYEVENTF_KEYUP),
     };
     try imSendInput(inputs);
 }

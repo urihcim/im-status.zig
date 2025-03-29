@@ -201,7 +201,7 @@ fn imFixUp() !void {
     try imSendInput(inputs);
 }
 
-fn imOff() !void {
+fn imKeyOff() !void {
     try imReleaseModKey();
     const inputs = &[_]INPUT{
         INPUT.VK(VK_IME_OFF, 0),
@@ -210,7 +210,7 @@ fn imOff() !void {
     try imSendInput(inputs);
 }
 
-fn imOn() !void {
+fn imKeyOn() !void {
     try imReleaseModKey();
     const inputs = &[_]INPUT{
         INPUT.VK(VK_IME_ON, 0),
@@ -218,6 +218,14 @@ fn imOn() !void {
     };
     try imSendInput(inputs);
     try imFixUp();
+}
+
+fn imOff() !void {
+    try imSetStatus(0);
+}
+
+fn imOn() !void {
+    try imKeyOn();
 }
 
 pub fn main() void {

@@ -8,12 +8,12 @@ pub fn build(b: *std.Build) void {
     // what target to build for. Here we do not override the defaults, which
     // means any target is allowed, and the default is native. Other options
     // for restricting supported target set are available.
-    const target = b.standardTargetOptions(.{ .default_target = std.zig.CrossTarget.fromTarget(.{
-        .cpu = std.Target.Cpu.baseline(.x86_64),
-        .os = std.Target.Os.Tag.defaultVersionRange(.windows, .x86_64),
+    const target = b.standardTargetOptions(.{ .default_target = std.Target.Query{
+        .cpu_arch = .x86_64,
+        .os_tag = .windows,
         .abi = .msvc,
         .ofmt = .coff,
-    }) });
+    } });
 
     // Standard optimization options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not

@@ -82,15 +82,16 @@ const INPUT = extern struct {
     }
 };
 
-extern "kernel32" fn GetLastError() callconv(win.WINAPI) win.DWORD;
-extern "kernel32" fn OpenProcess(dwDesiredAccess: win.DWORD, bInheritHandle: win.BOOL, dwProcessId: win.DWORD) callconv(win.WINAPI) ?win.HANDLE;
-extern "psapi" fn GetModuleFileNameExA(hProcess: win.HANDLE, hModule: ?win.HMODULE, lpFilename: win.LPSTR, nSize: win.DWORD) callconv(win.WINAPI) win.DWORD;
-extern "user32" fn GetWindowThreadProcessId(hWnd: win.HWND, lpdwProcessId: ?*win.DWORD) callconv(win.WINAPI) win.DWORD;
-extern "user32" fn GetGUIThreadInfo(idThread: win.DWORD, pgui: *GUITHREADINFO) callconv(win.WINAPI) win.BOOL;
-extern "user32" fn SendMessageA(hWnd: win.HANDLE, msg: win.UINT, wParam: win.WPARAM, lParam: win.LPARAM) callconv(win.WINAPI) win.LRESULT;
-extern "user32" fn SendInput(cInputs: win.UINT, pInputs: [*]const INPUT, cbSize: c_int) callconv(win.WINAPI) win.UINT;
-extern "imm32" fn ImmGetDefaultIMEWnd(hWnd: win.HWND) callconv(win.WINAPI) ?win.HWND;
-extern "shell32" fn CommandLineToArgvW(lpCmdLine: win.LPCWSTR, pNumArgs: *c_int) callconv(win.WINAPI) [*]win.LPWSTR;
+extern "kernel32" fn GetLastError() callconv(.winapi) win.DWORD;
+extern "kernel32" fn GetCommandLineW() callconv(.winapi) win.LPWSTR;
+extern "kernel32" fn OpenProcess(dwDesiredAccess: win.DWORD, bInheritHandle: win.BOOL, dwProcessId: win.DWORD) callconv(.winapi) ?win.HANDLE;
+extern "psapi" fn GetModuleFileNameExA(hProcess: win.HANDLE, hModule: ?win.HMODULE, lpFilename: win.LPSTR, nSize: win.DWORD) callconv(.winapi) win.DWORD;
+extern "user32" fn GetWindowThreadProcessId(hWnd: win.HWND, lpdwProcessId: ?*win.DWORD) callconv(.winapi) win.DWORD;
+extern "user32" fn GetGUIThreadInfo(idThread: win.DWORD, pgui: *GUITHREADINFO) callconv(.winapi) win.BOOL;
+extern "user32" fn SendMessageA(hWnd: win.HANDLE, msg: win.UINT, wParam: win.WPARAM, lParam: win.LPARAM) callconv(.winapi) win.LRESULT;
+extern "user32" fn SendInput(cInputs: win.UINT, pInputs: [*]const INPUT, cbSize: c_int) callconv(.winapi) win.UINT;
+extern "imm32" fn ImmGetDefaultIMEWnd(hWnd: win.HWND) callconv(.winapi) ?win.HWND;
+extern "shell32" fn CommandLineToArgvW(lpCmdLine: win.LPCWSTR, pNumArgs: *c_int) callconv(.winapi) [*]win.LPWSTR;
 
 fn imGetFocus() !win.HWND {
     var gui = GUITHREADINFO{};
@@ -232,7 +233,7 @@ pub fn main() void {
     errdefer std.process.exit(1);
 
     var argc: c_int = 0;
-    const cmdline = win.kernel32.GetCommandLineW();
+    const cmdline = GetCommandLineW();
     const args = CommandLineToArgvW(cmdline, &argc);
     if (argc > 1) {
         const status = args[1][0];

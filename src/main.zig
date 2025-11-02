@@ -247,7 +247,9 @@ pub fn main() void {
         }
     } else {
         const status = imGetStatus();
-        const stdout = std.io.getStdOut().writer();
+        var buf: [16]u8 = undefined;
+        var stdout = std.fs.File.stdout().writer(&buf).interface;
         try stdout.print("{}\n", .{status});
+        try stdout.flush();
     }
 }

@@ -30,7 +30,7 @@ jobs:
       run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
     - name: Download
       id: download
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v7
       with:
         path: im-status-${{ steps.version.outputs.version }}
     - name: Archive
